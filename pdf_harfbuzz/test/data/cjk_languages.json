@@ -1,0 +1,4 @@
+[
+  {"code":"zh","name":"Chinese","family":"GenYoMin TW Heavy","fontFile":"../pdf/genyomintw.ttf","direction":"ltr","sample":"你好，世界！中文文字測試。","stress":"中文漢字標點，。！？"},
+  {"code":"ja","name":"Japanese","family":"GenYoMin TW Heavy","fontFile":"../pdf/genyomintw.ttf","direction":"ltr","sample":"こんにちは世界。日本語の文字。","stress":"ひらがな カタカナ 漢字 が ぱ ヴ"}
+]

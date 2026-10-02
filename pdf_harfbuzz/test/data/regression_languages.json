@@ -1,0 +1,11 @@
+[
+  {"code":"ar","name":"Arabic","folder":"notonaskharabic","family":"Noto Naskh Arabic","direction":"rtl","sample":"اللغة العربية جميلة. مرحباً بكم!","stress":"السَّلَامُ عَلَيْكُمْ لا لأ لإ لآ الـــسَلاْمُ"},
+  {"code":"fa","name":"Persian","folder":"notonaskharabic","family":"Noto Naskh Arabic","direction":"rtl","sample":"سلام دنیا! زبان فارسی زیباست.","stress":"پ چ ژ گ ک ی می‌روم ۱۲۳۴۵"},
+  {"code":"he","name":"Hebrew","folder":"notosanshebrew","family":"Noto Sans Hebrew","direction":"rtl","sample":"שלום עולם! השפה העברית יפה.","stress":"שָׁלוֹם עוֹלָם 123"},
+  {"code":"en","name":"English","folder":"notosans","family":"Noto Sans","direction":"ltr","sample":"Hello world! Office, affinity, AVATAR 123.","stress":"office ffi fl AV To"},
+  {"code":"fr","name":"French","folder":"notosans","family":"Noto Sans","direction":"ltr","sample":"Bonjour ! L’été à Paris : café, cœur et français.","stress":"é è ê ë à â ç œ é"},
+  {"code":"de","name":"German","folder":"notosans","family":"Noto Sans","direction":"ltr","sample":"Grüße aus Deutschland! Straße, Öl und Äpfel.","stress":"Ä Ö Ü ä ö ü ß"},
+  {"code":"es","name":"Spanish","folder":"notosans","family":"Noto Sans","direction":"ltr","sample":"¡Hola, mundo! El español: mañana, acción y pingüino.","stress":"á é í ó ú ñ ü ¿Qué?"},
+  {"code":"ru","name":"Russian","folder":"notosans","family":"Noto Sans","direction":"ltr","sample":"Привет, мир! Русский язык прекрасен.","stress":"Ё ё Й й Ж ж Щ щ 123"},
+  {"code":"el","name":"Greek","folder":"notosans","family":"Noto Sans","direction":"ltr","sample":"Γεια σου κόσμε! Η ελληνική γλώσσα είναι όμορφη.","stress":"ά έ ή ί ό ύ ώ ϊ ΐ"}
+]

@@ -1,4 +1,5 @@
 import 'package:bidi/bidi.dart' as bidi;
+import 'text_shaper.dart';
 
 /*
  * Copyright (C) 2017, David PHAM-VAN <dev.nfet.net@gmail.com>
@@ -93,4 +94,51 @@ String logicalToVisual(String input) {
     }
   }
   return buffer.toString();
+}
+
+/// Source word indices in visual order. Unlike [logicalToVisual], this leaves
+/// each word's logical Unicode intact for an OpenType shaper. Apply after line
+/// breaking so an LTR phrase can wrap without reversing its logical words.
+List<int> visualWordOrder(List<String> words, {required bool rtl}) {
+  if (!rtl &&
+      !words.any(
+        (w) => w.runes.any(
+          (r) =>
+              bidi.getCharacterType(r) == bidi.CharacterType.al ||
+              bidi.getCharacterType(r) == bidi.CharacterType.rtl,
+        ),
+      )) {
+    return List.generate(words.length, (i) => i);
+  }
+  // The bidi package infers paragraph direction from its first strong letter.
+  // An invisible direction mark supplies the widget's explicit base direction.
+  final input = StringBuffer(rtl ? '\u200f' : '\u200e');
+  final owners = <int>[-1];
+  for (var i = 0; i < words.length; i++) {
+    if (i > 0) {
+      input.write(' ');
+      owners.add(-1);
+    }
+    input.write(words[i]);
+    owners.addAll(List.filled(words[i].length, i));
+  }
+  final order = <int>[];
+  final seen = <int>{};
+  for (final paragraph in bidi.BidiString.fromLogical(
+    PdfTextShaper.bidiIndexText(input.toString()),
+  ).paragraphs) {
+    for (final index in paragraph.indices) {
+      final owner = owners[index];
+      if (owner >= 0 && seen.add(owner)) {
+        order.add(owner);
+      }
+    }
+  }
+  // Directional controls alone have no visual glyphs but must retain a slot.
+  for (var i = 0; i < words.length; i++) {
+    if (seen.add(i)) {
+      order.add(i);
+    }
+  }
+  return rtl ? order.reversed.toList() : order;
 }

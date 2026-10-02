@@ -15,12 +15,14 @@
  */
 
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import '../document.dart';
 import '../font/arabic.dart' as arabic;
 import '../font/bidi_utils.dart' as bidi;
 import '../font/font_metrics.dart';
+import '../font/text_shaper.dart';
 import '../font/ttf_parser.dart';
 import '../font/ttf_writer.dart';
 import '../format/array.dart';
@@ -38,13 +40,22 @@ import 'unicode_cmap.dart';
 
 class PdfTtfFont extends PdfFont {
   /// Constructs a [PdfTtfFont]
-  PdfTtfFont(PdfDocument pdfDocument, ByteData bytes, {bool protect = false})
-    : font = TtfParser(bytes),
-      super.create(pdfDocument, subtype: '/TrueType') {
+  PdfTtfFont(
+    PdfDocument pdfDocument,
+    ByteData bytes, {
+    bool protect = false,
+    this.shaper,
+  }) : font = TtfParser(bytes),
+       super.create(pdfDocument, subtype: '/TrueType') {
     file = PdfObjectStream(pdfDocument, isBinary: true);
     unicodeCMap = PdfUnicodeCmap(pdfDocument, protect);
     descriptor = PdfFontDescriptor(this, file);
     widthsObject = PdfObject<PdfArray>(pdfDocument, params: PdfArray());
+    if (shaper != null && (!font.unicode || font.glyphOffsets.isEmpty)) {
+      throw UnsupportedError(
+        'OpenType shaping requires Unicode TrueType outlines (glyf/loca)',
+      );
+    }
   }
 
   /// Whether this font should take the CID `/Type0` path.
@@ -52,7 +63,8 @@ class PdfTtfFont extends PdfFont {
   /// Reads [PdfSettings.simpleTrueTypeFonts] rather than a static, because
   /// [PdfDocument.save] writes on a separate isolate where statics start fresh
   /// — a static would be seen by putText() but not by prepare().
-  bool get _useType0 => font.unicode && !settings.simpleTrueTypeFonts;
+  bool get _useType0 =>
+      font.unicode && (shaper != null || !settings.simpleTrueTypeFonts);
 
   /// Whether this font is written as a CID `/Type0` font.
   ///
@@ -73,6 +85,89 @@ class PdfTtfFont extends PdfFont {
   late PdfObject<PdfArray> widthsObject;
 
   final TtfParser font;
+
+  final PdfTextShaper? shaper;
+  final _runs = <String, PdfGlyphRun>{};
+  final _glyphIds = <int>[0];
+  final _glyphCids = <(int, String), int>{};
+
+  /// Shape once for both layout and painting. A bounded cache avoids retaining
+  /// every string in large documents.
+  PdfGlyphRun shape(String text) {
+    final cached = _runs.remove(text);
+    if (cached != null) {
+      _runs[text] = cached;
+      return cached;
+    }
+    final run = shaper!.shape(font.bytes, text);
+    for (final glyph in run.glyphs) {
+      if (glyph.glyphId < 0 ||
+          glyph.glyphId >= font.glyphOffsets.length ||
+          glyph.cluster < 0 ||
+          glyph.cluster >= text.length ||
+          !glyph.xAdvance.isFinite ||
+          !glyph.yAdvance.isFinite ||
+          !glyph.xOffset.isFinite ||
+          !glyph.yOffset.isFinite) {
+        throw StateError('Invalid OpenType glyph in font $fontName');
+      }
+    }
+    if (_runs.length >= 256) {
+      _runs.remove(_runs.keys.first);
+    }
+    _runs[text] = run;
+    return run;
+  }
+
+  /// Register a shaped glyph independently of the font's Unicode cmap.
+  int registerGlyph(int glyphId, String unicode) {
+    return _glyphCids.putIfAbsent((glyphId, unicode), () {
+      if (_glyphIds.length >= 65535) {
+        throw StateError('PDF font exceeds 65535 CIDs');
+      }
+      final cid = _glyphIds.length;
+      _glyphIds.add(glyphId);
+      unicodeCMap.cmap.add(0);
+      unicodeCMap.unicode[cid] = unicode;
+      return cid;
+    });
+  }
+
+  PdfFontMetrics _shapedMetrics(String text, double letterSpacing) {
+    final glyphs = shape(text).glyphs;
+    if (glyphs.isEmpty) {
+      return PdfFontMetrics.zero;
+    }
+    var x = 0.0;
+    var y = 0.0;
+    var left = double.infinity;
+    var right = double.negativeInfinity;
+    var top = double.infinity;
+    var bottom = double.negativeInfinity;
+    for (var i = 0; i < glyphs.length; i++) {
+      final glyph = glyphs[i];
+      final metric = font.glyphInfoMap[glyph.glyphId]!;
+      left = math.min(left, x + glyph.xOffset + metric.left);
+      right = math.max(right, x + glyph.xOffset + metric.right);
+      top = math.min(top, y + glyph.yOffset + metric.top);
+      bottom = math.max(bottom, y + glyph.yOffset + metric.bottom);
+      x += glyph.xAdvance;
+      y += glyph.yAdvance;
+      if (i + 1 < glyphs.length && glyph.cluster != glyphs[i + 1].cluster) {
+        x += letterSpacing;
+      }
+    }
+    return PdfFontMetrics(
+      left: left,
+      right: right,
+      top: top,
+      bottom: bottom,
+      ascent: math.max(ascent, bottom),
+      descent: math.min(descent, top),
+      advanceWidth: x,
+      leftBearing: left,
+    );
+  }
 
   @override
   String get fontName => font.fontName;
@@ -133,7 +228,9 @@ class PdfTtfFont extends PdfFont {
     int charMax;
 
     final ttfWriter = TtfWriter(font);
-    final data = ttfWriter.withChars(unicodeCMap.cmap);
+    final data = shaper == null
+        ? ttfWriter.withChars(unicodeCMap.cmap)
+        : ttfWriter.withGlyphs(_glyphIds);
     file.buf.putBytes(data);
     file.params['/Length1'] = PdfNum(data.length);
 
@@ -163,7 +260,12 @@ class PdfTtfFont extends PdfFont {
     for (var i = charMin; i <= charMax; i++) {
       widthsObject.params.add(
         PdfNum(
-          (glyphMetrics(unicodeCMap.cmap[i]).advanceWidth * 1000.0).toInt(),
+          ((shaper == null
+                          ? glyphMetrics(unicodeCMap.cmap[i])
+                          : font.glyphInfoMap[_glyphIds[i]]!)
+                      .advanceWidth *
+                  1000.0)
+              .toInt(),
         ),
       );
     }
@@ -182,6 +284,11 @@ class PdfTtfFont extends PdfFont {
 
   @override
   void putText(PdfStream stream, String text) {
+    if (shaper != null) {
+      throw StateError(
+        'Shaped text must be painted with PdfGraphics.drawString',
+      );
+    }
     if (!_useType0) {
       // Without the return the simple encoding is emitted and then the hex CID
       // string is appended on top of it, corrupting the text.
@@ -205,6 +312,9 @@ class PdfTtfFont extends PdfFont {
 
   @override
   PdfFontMetrics stringMetrics(String s, {double letterSpacing = 0}) {
+    if (shaper != null) {
+      return _shapedMetrics(s, letterSpacing);
+    }
     if (s.isEmpty || !font.unicode) {
       return super.stringMetrics(s, letterSpacing: letterSpacing);
     }
@@ -219,6 +329,10 @@ class PdfTtfFont extends PdfFont {
 
   @override
   bool isRuneSupported(int charCode) {
+    // Join controls affect shaping even though they have no visible outline.
+    if (shaper != null && (charCode == 0x200c || charCode == 0x200d)) {
+      return true;
+    }
     return font.charToGlyphIndexMap.containsKey(charCode);
   }
 }

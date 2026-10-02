@@ -1,0 +1,12 @@
+[
+  {"code":"hi","name":"Hindi","nativeName":"हिन्दी","family":"Noto Sans Devanagari","folder":"notosansdevanagari","direction":"ltr","sample":"हिन्दी भाषा बहुत सुंदर है। सभी का स्वागत है।","stress":"कि की कु कू कृ क्ष त्र ज्ञ श्र प्रार्थना राष्ट्र विद्यालय"},
+  {"code":"bn","name":"Bengali","nativeName":"বাংলা","family":"Noto Sans Bengali","folder":"notosansbengali","direction":"ltr","sample":"বাংলা ভাষা খুব সুন্দর। সবাইকে স্বাগতম।","stress":"কি কী কু কূ কৃ ক্ষ জ্ঞ শ্র ক্র ক্ত ন্দ শিক্ষা সংস্কৃতি"},
+  {"code":"mr","name":"Marathi","nativeName":"मराठी","family":"Noto Sans Devanagari","folder":"notosansdevanagari","direction":"ltr","sample":"मराठी भाषा खूप सुंदर आहे. सर्वांचे स्वागत!","stress":"ळ ऱ ॲ ऑ क्ष ज्ञ श्र श्री महाराष्ट्र शिक्षण संस्कृती"},
+  {"code":"te","name":"Telugu","nativeName":"తెలుగు","family":"Noto Sans Telugu","folder":"notosanstelugu","direction":"ltr","sample":"తెలుగు భాష అందమైనది. అందరికీ స్వాగతం!","stress":"కి కీ కు కూ కృ కె కే కై కొ కో కౌ క్ష జ్ఞ శ్రీ విద్య"},
+  {"code":"ta","name":"Tamil","nativeName":"தமிழ்","family":"Noto Sans Tamil","folder":"notosanstamil","direction":"ltr","sample":"தமிழ் மொழி மிகவும் அழகானது. அனைவருக்கும் வணக்கம்!","stress":"கி கீ கு கூ கெ கே கை கொ கோ கௌ ஸ்ரீ க்ஷ கல்வி"},
+  {"code":"gu","name":"Gujarati","nativeName":"ગુજરાતી","family":"Noto Sans Gujarati","folder":"notosansgujarati","direction":"ltr","sample":"ગુજરાતી ભાષા ખૂબ સુંદર છે. સૌનું સ્વાગત છે.","stress":"કિ કી કુ કૂ કૃ કે કૈ કો કૌ ક્ષ જ્ઞ શ્ર ત્ર શિક્ષણ"},
+  {"code":"ur","name":"Urdu","nativeName":"اردو","family":"Noto Nastaliq Urdu","folder":"notonastaliqurdu","direction":"rtl","sample":"اردو زبان بہت خوبصورت ہے۔ آپ سب کو خوش آمدید!","stress":"پاکستان تعلیم ثقافت ٹ ڈ ڑ ں ھ ے بِسْمِ اللّٰهِ"},
+  {"code":"kn","name":"Kannada","nativeName":"ಕನ್ನಡ","family":"Noto Sans Kannada","folder":"notosanskannada","direction":"ltr","sample":"ಕನ್ನಡ ಭಾಷೆ ತುಂಬಾ ಸುಂದರವಾಗಿದೆ. ಎಲ್ಲರಿಗೂ ಸ್ವಾಗತ!","stress":"ಕಿ ಕೀ ಕು ಕೂ ಕೃ ಕೆ ಕೇ ಕೈ ಕೊ ಕೋ ಕೌ ಕ್ಷ ಜ್ಞ ಶ್ರೀ ಶಿಕ್ಷಣ"},
+  {"code":"or","name":"Odia","nativeName":"ଓଡ଼ିଆ","family":"Noto Sans Oriya","folder":"notosansoriya","direction":"ltr","sample":"ଓଡ଼ିଆ ଭାଷା ବହୁତ ସୁନ୍ଦର। ସମସ୍ତଙ୍କୁ ସ୍ୱାଗତ!","stress":"କି କୀ କୁ କୂ କୃ କେ କୈ କୋ କୌ କ୍ଷ ଜ୍ଞ ଶ୍ର ଡ଼"},
+  {"code":"ml","name":"Malayalam","nativeName":"മലയാളം","family":"Noto Sans Malayalam","folder":"notosansmalayalam","direction":"ltr","sample":"മലയാളം വളരെ മനോഹരമായ ഭാഷയാണ്. എല്ലാവർക്കും സ്വാഗതം!","stress":"കി കീ കു കൂ കൃ കെ കേ കൈ കൊ കോ കൗ ക്ഷ ജ്ഞ ശ്രീ ൻ ർ ൽ ൾ"}
+]

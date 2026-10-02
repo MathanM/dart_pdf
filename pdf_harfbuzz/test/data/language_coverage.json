@@ -1,0 +1,23 @@
+[
+  {"code":"hi","script":"Deva","probe":"प्रार्थना","fallback":true,"screenshot":"india-ten-languages-2.png"},
+  {"code":"bn","script":"Beng","probe":"শিক্ষা","fallback":true,"screenshot":"india-ten-languages-2.png"},
+  {"code":"mr","script":"Deva","probe":"महाराष्ट्र","fallback":true,"screenshot":"india-ten-languages-3.png"},
+  {"code":"te","script":"Telu","probe":"విద్య","fallback":true,"screenshot":"india-ten-languages-3.png"},
+  {"code":"ta","script":"Taml","probe":"கொகோகௌ","fallback":true,"screenshot":"india-ten-languages-4.png"},
+  {"code":"gu","script":"Gujr","probe":"શિક્ષણ","fallback":true,"screenshot":"india-ten-languages-4.png"},
+  {"code":"ur","script":"Arab","probe":"پاکستان","fallback":true,"screenshot":"india-ten-languages-5.png"},
+  {"code":"kn","script":"Knda","probe":"ಶಿಕ್ಷಣ","fallback":true,"screenshot":"india-ten-languages-5.png"},
+  {"code":"or","script":"Orya","probe":"ସ୍ୱାଗତ","fallback":true,"screenshot":"india-ten-languages-6.png"},
+  {"code":"ml","script":"Mlym","probe":"മനോഹരം","fallback":true,"screenshot":"india-ten-languages-6.png"},
+  {"code":"ar","script":"Arab","probe":"السَّلَامُ","fallback":true,"screenshot":"language-regression-1.png"},
+  {"code":"fa","script":"Arab","probe":"می‌روم","fallback":true,"screenshot":"language-regression-1.png"},
+  {"code":"he","script":"Hebr","probe":"שָׁלוֹם","fallback":true,"screenshot":"language-regression-1.png"},
+  {"code":"en","script":"Latn","probe":"office","fallback":false,"screenshot":"language-regression-2.png"},
+  {"code":"fr","script":"Latn","probe":"cœur","fallback":false,"screenshot":"language-regression-2.png"},
+  {"code":"de","script":"Latn","probe":"Grüße","fallback":false,"screenshot":"language-regression-2.png"},
+  {"code":"es","script":"Latn","probe":"pingüino","fallback":false,"screenshot":"language-regression-2.png"},
+  {"code":"ru","script":"Cyrl","probe":"Русский","fallback":true,"screenshot":"language-regression-2.png"},
+  {"code":"el","script":"Grek","probe":"γλώσσα","fallback":true,"screenshot":"language-regression-2.png"},
+  {"code":"zh","script":"Hani","probe":"文字測試","fallback":true,"screenshot":"language-regression-3.png"},
+  {"code":"ja","script":"Hira","probe":"こんにちは","fallback":true,"screenshot":"language-regression-3.png"}
+]

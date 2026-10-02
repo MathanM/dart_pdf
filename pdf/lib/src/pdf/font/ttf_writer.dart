@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'ttf_parser.dart';
@@ -79,94 +78,52 @@ class TtfWriter {
     return offset + ((align - (offset % align)) % align);
   }
 
-  /// Write this list of glyphs
-  Uint8List withChars(List<int> chars) {
+  /// Subset the glyphs mapped from Unicode characters, preserving CID order.
+  Uint8List withChars(List<int> chars) => withGlyphs([
+    for (final char in chars) ttf.charToGlyphIndexMap[char] ?? 0,
+  ]);
+
+  /// Subset original glyph IDs, including glyphs produced by GSUB that have no
+  /// Unicode cmap entry. The first requested glyph occupies subset GID zero.
+  /// Duplicate IDs deliberately occupy separate slots, preserving CID order.
+  Uint8List withGlyphs(List<int> glyphIds) {
+    if (glyphIds.isEmpty) {
+      throw ArgumentError.value(glyphIds, 'glyphIds', 'Must not be empty');
+    }
     final tables = <String, Uint8List>{};
     final tablesLength = <String, int>{};
-
-    // Create the glyphs table
-    final glyphsMap = <int, TtfGlyphInfo>{};
-    final charMap = <int, int>{};
-    final overflow = <int>{};
-    final compounds = <int, int>{};
-
-    for (final char in chars) {
-      if (char == 32) {
-        final glyph = TtfGlyphInfo(
-          ttf.charToGlyphIndexMap[char]!,
-          Uint8List(0),
-          const <int>[],
-        );
-        glyphsMap[glyph.index] = glyph;
-        charMap[char] = glyph.index;
-        continue;
-      }
-
-      final glyphIndex = ttf.charToGlyphIndexMap[char] ?? 0;
-      if (glyphIndex >= ttf.glyphOffsets.length) {
-        assert(() {
-          print('Glyph $glyphIndex not in the font ${ttf.fontName}');
-          return true;
-        }());
-        continue;
-      }
-
-      void addGlyph(glyphIndex) {
-        final glyph = ttf.readGlyph(glyphIndex).copy();
-        for (final g in glyph.compounds) {
-          compounds[g] = -1;
-          overflow.add(g);
-          addGlyph(g);
-        }
-        glyphsMap[glyph.index] = glyph;
-      }
-
-      charMap[char] = glyphIndex;
-      addGlyph(glyphIndex);
-    }
-
     final glyphsInfo = <TtfGlyphInfo>[];
-
-    for (final char in chars) {
-      final glyphsIndex = charMap[char];
-      if (glyphsIndex != null) {
-        final glyph = glyphsMap[glyphsIndex];
-        if (glyph != null) {
-          glyphsInfo.add(glyph);
-        } else if (glyphsMap.isNotEmpty) {
-          glyphsInfo.add(glyphsMap.values.first);
-        } else {
-          // The font has no glyph reachable for [char] AND every other glyph in the
-          // subset has already been consumed, so `glyphsMap.values.first` would throw
-          // `Bad state: No element`. Surface a clearer diagnostic that names the
-          // offending codepoint — this is typically a font/charset mismatch
-          // (e.g. Arabic Presentation Forms in a font with no Presentation glyphs).
-          throw Exception(
-            "Missing glyph for character '${String.fromCharCode(char)}' "
-            '(U+${char.toRadixString(16).toUpperCase().padLeft(4, '0')}) '
-            'in font ${ttf.fontName}. Use a font that includes this codepoint, '
-            'or strip/normalize the character before passing it to the PDF.',
-          );
+    final indices = <int, int>{};
+    for (final id in glyphIds) {
+      if (ttf.isBitmap && id >= 0 && id < ttf.numGlyphs) {
+        // Bitmap emoji are painted as images by the widget layer. Their font
+        // may still be registered in the document; retain empty placeholder
+        // outlines so saving unrelated text does not fail.
+        indices.putIfAbsent(id, () => glyphsInfo.length);
+        glyphsInfo.add(TtfGlyphInfo(id, Uint8List(0), const []));
+        continue;
+      }
+      if (id < 0 || id >= ttf.glyphOffsets.length) {
+        throw RangeError.range(id, 0, ttf.glyphOffsets.length - 1, 'glyphId');
+      }
+      indices.putIfAbsent(id, () => glyphsInfo.length);
+      glyphsInfo.add(ttf.readGlyph(id).copy());
+    }
+    // Iterative closure also terminates for cyclic compound references.
+    for (var i = 0; i < glyphsInfo.length; i++) {
+      for (final id in glyphsInfo[i].compounds) {
+        if (!indices.containsKey(id)) {
+          indices[id] = glyphsInfo.length;
+          glyphsInfo.add(ttf.readGlyph(id).copy());
         }
-        glyphsMap.remove(glyphsIndex);
       }
     }
-
-    glyphsInfo.addAll(glyphsMap.values);
-
-    // Add compound glyphs
-    for (final compound in compounds.keys) {
-      final index = glyphsInfo.firstWhere(
-        (TtfGlyphInfo glyph) => glyph.index == compound,
-      );
-      compounds[compound] = glyphsInfo.indexOf(index);
-      assert((compounds[compound] ?? 0) >= 0, 'Unable to find the glyph');
+    if (glyphsInfo.length > 65535) {
+      throw StateError('TrueType subset exceeds 65535 glyphs');
     }
-
-    // update compound indices
     for (final glyph in glyphsInfo) {
       if (glyph.compounds.isNotEmpty) {
-        _updateCompoundGlyph(glyph, compounds);
+        _updateCompoundGlyph(glyph, indices);
       }
     }
 
@@ -181,8 +138,10 @@ class TtfWriter {
     tables[TtfParser.glyf_table] = glyphsTable;
     tablesLength[TtfParser.glyf_table] = glyphsTableLength;
 
+    final longLoca = ttf.indexToLocFormat == 1 || glyphsTableLength > 0x1fffe;
+
     // Loca
-    if (ttf.indexToLocFormat == 0) {
+    if (!longLoca) {
       tables[TtfParser.loca_table] = Uint8List(
         _wordAlign((glyphsInfo.length + 1) * 2),
       ); // uint16
@@ -198,7 +157,7 @@ class TtfWriter {
       final loca = tables[TtfParser.loca_table]!.buffer.asByteData();
       var index = 0;
       for (final glyph in glyphsInfo) {
-        if (ttf.indexToLocFormat == 0) {
+        if (!longLoca) {
           loca.setUint16(index, offset ~/ 2);
           index += 2;
         } else {
@@ -208,7 +167,7 @@ class TtfWriter {
         glyphsTable.setAll(offset, glyph.data);
         offset = _wordAlign(offset + glyph.data.lengthInBytes);
       }
-      if (ttf.indexToLocFormat == 0) {
+      if (!longLoca) {
         loca.setUint16(index, offset ~/ 2);
       } else {
         loca.setUint32(index, offset);
@@ -227,9 +186,11 @@ class TtfWriter {
         continue;
       }
       final len = ttf.tableSize[tn]!;
-      final data = Uint8List.fromList(
-        ttf.bytes.buffer.asUint8List(start, _wordAlign(len)),
-      );
+      final data = Uint8List(_wordAlign(len))
+        ..setAll(
+          0,
+          ttf.bytes.buffer.asUint8List(ttf.bytes.offsetInBytes + start, len),
+        );
       tables[tn] = data;
       tablesLength[tn] = len;
     }
@@ -238,6 +199,10 @@ class TtfWriter {
       8,
       0,
     ); // checkSumAdjustment
+    tables[TtfParser.head_table]!.buffer.asByteData().setInt16(
+      50,
+      longLoca ? 1 : 0,
+    );
     tables[TtfParser.maxp_table]!.buffer.asByteData().setUint16(
       4,
       glyphsInfo.length,
@@ -251,9 +216,11 @@ class TtfWriter {
       // post Table
       final start = ttf.tableOffsets[TtfParser.post_table]!;
       const len = 32;
-      final data = Uint8List.fromList(
-        ttf.bytes.buffer.asUint8List(start, _wordAlign(len)),
-      );
+      final data = Uint8List(_wordAlign(len))
+        ..setAll(
+          0,
+          ttf.bytes.buffer.asUint8List(ttf.bytes.offsetInBytes + start, len),
+        );
       data.buffer.asByteData().setUint32(0, 0x00030000); // Version 3.0 no names
       tables[TtfParser.post_table] = data;
       tablesLength[TtfParser.post_table] = len;
@@ -304,7 +271,7 @@ class TtfWriter {
       cmapData.setUint32(20, 1); // Table language
       cmapData.setUint32(24, 1); // numGroups
       cmapData.setUint32(28, 32); // startCharCode
-      cmapData.setUint32(32, chars.length + 31); // endCharCode
+      cmapData.setUint32(32, glyphIds.length + 31); // endCharCode
       cmapData.setUint32(36, 0); // startGlyphID
 
       tables[TtfParser.cmap_table] = cmap;
@@ -332,13 +299,15 @@ class TtfWriter {
       final start = ByteData(12 + numTables * 16);
       start.setUint32(0, 0x00010000);
       start.setUint16(4, numTables);
-      var pot = numTables;
-      while (pot & (pot - 1) != 0) {
-        pot++;
+      var pot = 1;
+      var entrySelector = 0;
+      while (pot * 2 <= numTables) {
+        pot *= 2;
+        entrySelector++;
       }
       start.setUint16(6, pot * 16);
-      start.setUint16(8, math.log(pot).toInt());
-      start.setUint16(10, pot * 16 - numTables * 16);
+      start.setUint16(8, entrySelector);
+      start.setUint16(10, numTables * 16 - pot * 16);
 
       // Create the table directory
       var count = 0;
@@ -356,7 +325,8 @@ class TtfWriter {
         TtfParser.glyf_table,
         TtfParser.name_table,
         TtfParser.post_table,
-      ];
+      ]..removeWhere((name) => !tables.containsKey(name));
+      tableKeys.sort();
 
       for (final name in tableKeys) {
         final data = tables[name]!;

@@ -21,6 +21,7 @@ export 'src/pdf/document.dart';
 export 'src/pdf/document_parser.dart';
 export 'src/pdf/exif.dart';
 export 'src/pdf/font/font_metrics.dart';
+export 'src/pdf/font/text_shaper.dart';
 export 'src/pdf/font/ttf_parser.dart';
 export 'src/pdf/format/name.dart';
 export 'src/pdf/format/object_base.dart' show DeflateCallback, PdfVersion;
