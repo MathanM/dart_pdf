@@ -20,47 +20,30 @@ import 'point.dart';
 
 @immutable
 class PdfRect {
-  const PdfRect(
-    this.left,
-    this.bottom,
-    this.width,
-    this.height, [
-    this.minWidth,
-  ]);
+  const PdfRect(this.left, this.bottom, this.width, this.height);
 
   @Deprecated('Use PdfRect.fromLBRT instead')
   factory PdfRect.fromLTRB(
     double left,
     double bottom,
     double right,
-    double top, [
-    double? minWidth,
-  ]) = PdfRect.fromLBRT;
+    double top,
+  ) = PdfRect.fromLBRT;
 
   factory PdfRect.fromLBRT(
     double left,
     double bottom,
     double right,
-    double top, [
-    double? minWidth,
-  ]) {
-    return PdfRect(left, bottom, right - left, top - bottom, minWidth);
+    double top,
+  ) {
+    return PdfRect(left, bottom, right - left, top - bottom);
   }
 
-  factory PdfRect.fromPoints(
-    PdfPoint offset,
-    PdfPoint size, [
-    double? minWidth,
-  ]) {
-    return PdfRect(offset.x, offset.y, size.x, size.y, minWidth);
+  factory PdfRect.fromPoints(PdfPoint offset, PdfPoint size) {
+    return PdfRect(offset.x, offset.y, size.x, size.y);
   }
 
   final double left, bottom, width, height;
-
-  /// The narrowest width the content can take without overflowing, such as
-  /// the widest unbreakable word of a paragraph. Tables use it to keep columns
-  /// from shrinking below their content.
-  final double? minWidth;
 
   static const PdfRect zero = PdfRect(0, 0, 0, 0);
 
@@ -114,13 +97,12 @@ class PdfRect {
   PdfPoint get rightTop => PdfPoint(right, top);
 
   /// Returns a new rectangle with edges moved outwards by the given delta.
-  PdfRect inflate(double delta, [double? minWidth]) {
+  PdfRect inflate(double delta) {
     return PdfRect.fromLBRT(
       left - delta,
       bottom - delta,
       right + delta,
       top + delta,
-      minWidth,
     );
   }
 
@@ -134,14 +116,12 @@ class PdfRect {
     double? bottom,
     double? width,
     double? height,
-    double? minWidth,
   }) {
     return PdfRect(
       left ?? x ?? this.left,
       bottom ?? y ?? this.bottom,
       width ?? this.width,
       height ?? this.height,
-      minWidth ?? this.minWidth,
     );
   }
 }

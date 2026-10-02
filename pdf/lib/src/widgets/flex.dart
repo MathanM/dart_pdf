@@ -163,6 +163,21 @@ class Flex extends MultiChildWidget with SpanningWidget {
     }
   }
 
+  /// A row needs room for every child side by side, a column only for its
+  /// widest child. Unlike [computeMinIntrinsicWidth], which reads the sizes
+  /// of a previous layout, this doesn't need the children laid out.
+  @override
+  double getMinIntrinsicWidth(Context context) {
+    var result = 0.0;
+    for (final child in children) {
+      final width = child.getMinIntrinsicWidth(context);
+      result = direction == Axis.horizontal
+          ? result + width
+          : math.max(result, width);
+    }
+    return result;
+  }
+
   double computeMinIntrinsicWidth(double height) {
     return _getIntrinsicSize(
       sizingDirection: Axis.horizontal,

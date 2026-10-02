@@ -109,6 +109,13 @@ class Wrap extends MultiChildWidget with SpanningWidget {
 
   final WrapContext _context = WrapContext();
 
+  /// Children can always be placed one per run, so the widest child decides.
+  @override
+  double getMinIntrinsicWidth(Context context) => children.fold(
+    0.0,
+    (width, child) => math.max(width, child.getMinIntrinsicWidth(context)),
+  );
+
   double? _getMainAxisExtent(Widget child) {
     switch (direction) {
       case Axis.horizontal:

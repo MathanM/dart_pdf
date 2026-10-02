@@ -83,6 +83,11 @@ class Padding extends SingleChildWidget {
   final EdgeInsetsGeometry padding;
 
   @override
+  double getMinIntrinsicWidth(Context context) =>
+      super.getMinIntrinsicWidth(context) +
+      padding.resolve(Directionality.of(context)).horizontal;
+
+  @override
   void layout(
     Context context,
     BoxConstraints constraints, {
@@ -96,9 +101,6 @@ class Padding extends SingleChildWidget {
       box = constraints.constrainRect(
         width: child!.box!.width + resolvedPadding.horizontal,
         height: child!.box!.height + resolvedPadding.vertical,
-        minWidth: child!.box!.minWidth != null
-            ? child!.box!.minWidth! + resolvedPadding.horizontal
-            : null,
       );
     } else {
       box = constraints.constrainRect(
@@ -210,6 +212,16 @@ class Transform extends SingleChildWidget {
 
   /// The matrix to transform the child by during painting.
   final Matrix4 transform;
+
+  /// A box rotated with [adjustLayout] takes the width of its rotated bounds.
+  @override
+  double getMinIntrinsicWidth(Context context) {
+    if (!adjustLayout || child == null) {
+      return super.getMinIntrinsicWidth(context);
+    }
+    layout(context, const BoxConstraints());
+    return box!.width;
+  }
 
   /// The origin of the coordinate system
   final PdfPoint? origin;
@@ -366,9 +378,6 @@ class Align extends SingleChildWidget {
         height: shrinkWrapHeight
             ? child!.box!.height * (heightFactor ?? 1.0)
             : double.infinity,
-        minWidth: child!.box!.minWidth != null && shrinkWrapWidth
-            ? child!.box!.minWidth! * (widthFactor ?? 1.0)
-            : null,
       );
       final resolvedAlignment = alignment.resolve(Directionality.of(context));
       child!.box = resolvedAlignment.inscribe(child!.box!.size, box!);
@@ -504,6 +513,19 @@ class ConstrainedBox extends SingleChildWidget {
   /// The additional constraints to impose on the child.
   final BoxConstraints constraints;
 
+  /// An unbounded minimum, as in [BoxConstraints.expand], only asks for all
+  /// the space available, which says nothing about the content.
+  @override
+  double getMinIntrinsicWidth(Context context) {
+    final width = math.min(
+      super.getMinIntrinsicWidth(context),
+      constraints.maxWidth,
+    );
+    return constraints.minWidth.isFinite
+        ? math.max(width, constraints.minWidth)
+        : width;
+  }
+
   @override
   void layout(
     Context context,
@@ -551,6 +573,10 @@ class FittedBox extends SingleChildWidget {
 
   /// How to align the child within its parent's bounds.
   final AlignmentGeometry alignment;
+
+  /// The child is scaled down to fit, so it can shrink to nothing.
+  @override
+  double getMinIntrinsicWidth(Context context) => 0;
 
   @override
   void layout(

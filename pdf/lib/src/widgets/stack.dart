@@ -177,6 +177,12 @@ class Stack extends MultiChildWidget {
   final Overflow overflow;
 
   @override
+  double getMinIntrinsicWidth(Context context) => children.fold(
+    0.0,
+    (width, child) => math.max(width, child.getMinIntrinsicWidth(context)),
+  );
+
+  @override
   void layout(
     Context context,
     BoxConstraints constraints, {

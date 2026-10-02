@@ -200,6 +200,13 @@ abstract class Widget {
     bool parentUsesSize = false,
   });
 
+  /// The narrowest width this widget can be laid out at without breaking
+  /// its content in an unexpected place, like the middle of a word.
+  ///
+  /// [Table] uses it to keep each column at least as wide as its content.
+  /// Widgets that can shrink to nothing keep the default of zero.
+  double getMinIntrinsicWidth(Context context) => 0;
+
   /// Draw itself and its children, according to the calculated
   /// [box.offset]
   @mustCallSuper
@@ -263,6 +270,12 @@ abstract class StatelessWidget extends Widget with SpanningWidget {
   Widget build(Context context);
 
   @override
+  double getMinIntrinsicWidth(Context context) {
+    _child ??= build(context);
+    return _child?.getMinIntrinsicWidth(context) ?? 0;
+  }
+
+  @override
   bool get canSpan =>
       _child != null &&
       _child is SpanningWidget &&
@@ -308,6 +321,10 @@ abstract class SingleChildWidget extends Widget with SpanningWidget {
       box = PdfRect.fromPoints(PdfPoint.zero, constraints.smallest);
     }
   }
+
+  @override
+  double getMinIntrinsicWidth(Context context) =>
+      child?.getMinIntrinsicWidth(context) ?? 0;
 
   @protected
   void paintChild(Context context) {
@@ -379,6 +396,15 @@ class InheritedWidget extends SingleChildWidget {
   }
 
   @override
+  double getMinIntrinsicWidth(Context context) {
+    final inheritedContext = inherited != null
+        ? context.inheritFrom(inherited!)
+        : context;
+    _child = build!(inheritedContext);
+    return _child?.getMinIntrinsicWidth(inheritedContext) ?? 0;
+  }
+
+  @override
   void paint(Context context) {
     assert(_context != null);
     super.paint(_context!);
@@ -404,6 +430,12 @@ class DelayedWidget extends SingleChildWidget {
   }) {
     _child = build(context);
     super.layout(context, constraints);
+  }
+
+  @override
+  double getMinIntrinsicWidth(Context context) {
+    _child = build(context);
+    return super.getMinIntrinsicWidth(context);
   }
 
   void delayedPaint(Context context) {

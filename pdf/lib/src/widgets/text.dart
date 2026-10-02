@@ -1075,6 +1075,109 @@ class RichText extends Widget with SpanningWidget {
     return spans;
   }
 
+  /// The text of [span] in the order its glyphs are laid out.
+  String _visualText(TextSpan span, PdfFont font, TextDirection direction) {
+    if (font is PdfTtfFont && font.shaper != null) {
+      return span.text!;
+    }
+    if (direction == TextDirection.rtl) {
+      if (useArabic) {
+        return arabic.convert(span.text!);
+      }
+      if (useBidi) {
+        return bidi.logicalToVisual(span.text!);
+      }
+    }
+    return span.text!;
+  }
+
+  /// The widest word, as the narrowest width that lays the text out without
+  /// splitting a word across two lines. With hyphenation enabled a word may
+  /// break between syllables, and without soft wrap a line never breaks, so
+  /// its full length is the minimum.
+  @override
+  double getMinIntrinsicWidth(Context context) {
+    final theme = Theme.of(context);
+    final wrap = softWrap ?? theme.softWrap;
+    final direction = textDirection ?? Directionality.of(context);
+    _preprocessed ??= _preProcessSpans(context);
+
+    var result = 0.0;
+    // Natural width of the current line, only tracked without soft wrap
+    var lineWidth = 0.0;
+
+    for (final span in _preprocessed!) {
+      if (span is WidgetSpan) {
+        final width = span.child.getMinIntrinsicWidth(context);
+        if (wrap) {
+          result = math.max(result, width);
+        } else {
+          lineWidth += width;
+        }
+        continue;
+      }
+
+      if (span is! TextSpan || span.text == null) {
+        continue;
+      }
+
+      final style = span.style!;
+      final font = style.font!.getFont(context);
+      final scale = style.fontSize! * textScaleFactor;
+      PdfFontMetrics measure(String word) =>
+          font.stringMetrics(
+            word,
+            letterSpacing: style.letterSpacing! / scale,
+          ) *
+          scale;
+      final spacing =
+          (font.stringMetrics(' ') * scale).advanceWidth * style.wordSpacing! +
+          style.letterSpacing!;
+
+      final spanLines = _visualText(span, font, direction).split('\n');
+      for (var line = 0; line < spanLines.length; line++) {
+        if (line > 0) {
+          result = math.max(result, lineWidth);
+          lineWidth = 0;
+        }
+        final words =
+            lineSplitter?.call(spanLines[line]) ??
+            (_isSingleAsciiWord(spanLines[line])
+                ? [spanLines[line]]
+                : spanLines[line].split(_splitWhitespace));
+        for (var index = 0; index < words.length; index++) {
+          final word = words[index];
+          if (!wrap) {
+            if (index > 0) {
+              lineWidth += spacing;
+            }
+            if (word.isNotEmpty) {
+              lineWidth += measure(word).advanceWidth;
+            }
+            continue;
+          }
+          if (word.isEmpty) {
+            continue;
+          }
+          final syllables = hyphenation?.call(word) ?? const <String>[];
+          if (syllables.length > 1) {
+            for (var s = 0; s < syllables.length; s++) {
+              final last = s == syllables.length - 1;
+              result = math.max(
+                result,
+                measure(last ? syllables[s] : '${syllables[s]}-').width,
+              );
+            }
+          } else {
+            result = math.max(result, measure(word).width);
+          }
+        }
+      }
+    }
+
+    return math.max(result, lineWidth);
+  }
+
   @override
   void layout(
     Context context,
@@ -1104,7 +1207,6 @@ class RichText extends Widget with SpanningWidget {
 
     var top = 0.0;
     var bottom = 0.0;
-    var minWidth = 0.0;
 
     final lines = <_Line>[];
     var spanCount = 0;
@@ -1128,13 +1230,7 @@ class RichText extends Widget with SpanningWidget {
           final space =
               font.stringMetrics(' ') * (style.fontSize! * textScaleFactor);
 
-          final spanText = (font is PdfTtfFont && font.shaper != null
-              ? span.text
-              : useArabic && _textDirection == TextDirection.rtl
-              ? arabic.convert(span.text!)
-              : useBidi && _textDirection == TextDirection.rtl
-              ? bidi.logicalToVisual(span.text!)
-              : span.text)!;
+          final spanText = _visualText(span, font, _textDirection);
           // Fast path: a run of printable ASCII with no space is one word on
           // one line, so both splits — and the regex engine behind the word
           // split — can be skipped. Serial numbers and ticket numbers, the
@@ -1176,8 +1272,6 @@ class RichText extends Widget with SpanningWidget {
                         (style.fontSize! * textScaleFactor),
                   ) *
                   (style.fontSize! * textScaleFactor);
-
-              minWidth = math.max(minWidth, metrics.width);
 
               if (_softWrap &&
                   offsetX + metrics.width > constraintWidth + 0.00001) {
@@ -1441,7 +1535,6 @@ class RichText extends Widget with SpanningWidget {
       0,
       constraints.constrainWidth(width),
       constraints.constrainHeight(offsetY),
-      minWidth,
     );
 
     _context
