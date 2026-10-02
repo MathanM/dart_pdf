@@ -61,7 +61,8 @@ class Font {
   factory Font.timesItalic() => Font.type1(Type1Fonts.timesItalic);
   factory Font.symbol() => Font.type1(Type1Fonts.symbol);
   factory Font.zapfDingbats() => Font.type1(Type1Fonts.zapfDingbats);
-  factory Font.ttf(ByteData data) => TtfFont(data);
+  factory Font.ttf(ByteData data, {PdfTextShaper? shaper}) =>
+      TtfFont(data, shaper: shaper);
 
   final Type1Fonts? font;
 
@@ -141,15 +142,18 @@ class Font {
 }
 
 class TtfFont extends Font {
-  TtfFont(this.data, {this.protect = false});
+  TtfFont(this.data, {this.protect = false, this.shaper});
 
   final ByteData data;
 
   final bool protect;
 
+  /// OpenType shaping used for both measuring and painting this font.
+  final PdfTextShaper? shaper;
+
   @override
   PdfFont buildFont(PdfDocument pdfDocument) {
-    return PdfTtfFont(pdfDocument, data, protect: protect);
+    return PdfTtfFont(pdfDocument, data, protect: protect, shaper: shaper);
   }
 
   @override

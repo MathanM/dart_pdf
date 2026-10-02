@@ -16,6 +16,7 @@
 
 import 'dart:math' as math;
 
+import 'package:characters/characters.dart';
 import 'package:meta/meta.dart';
 
 import '../../pdf.dart';
@@ -25,6 +26,7 @@ import '../pdf/options.dart';
 import 'annotations.dart';
 import 'basic.dart';
 import 'document.dart';
+import 'font.dart';
 import 'geometry.dart';
 import 'image.dart';
 import 'image_provider.dart';
@@ -105,13 +107,24 @@ class _TextDecoration {
       return _box;
     }
 
-    final x1 = spans[startSpan].offset.x + spans[startSpan].left;
-    final x2 =
+    var x1 = spans[startSpan].offset.x + spans[startSpan].left;
+    var x2 =
         spans[endSpan].offset.x + spans[endSpan].left + spans[endSpan].width;
+    final shaped = spans
+        .sublist(startSpan, endSpan + 1)
+        .any((s) => s is _Word && s.shaped);
+    if (shaped) {
+      x2 = x1 + spans[startSpan].width;
+    }
     var y1 = spans[startSpan].offset.y + spans[startSpan].top;
     var y2 = y1 + spans[startSpan].height;
 
     for (var n = startSpan + 1; n <= endSpan; n++) {
+      if (shaped) {
+        final left = spans[n].offset.x + spans[n].left;
+        x1 = math.min(x1, left);
+        x2 = math.max(x2, left + spans[n].width);
+      }
       final ny1 = spans[n].offset.y + spans[n].top;
       final ny2 = ny1 + spans[n].height;
       y1 = math.min(y1, ny1);
@@ -260,11 +273,14 @@ class _TextDecoration {
 }
 
 class _Word extends _Span {
-  _Word(this.text, TextStyle style, this.metrics) : super(style);
+  _Word(this.text, TextStyle style, this.metrics, {this.shaped = false})
+    : super(style);
 
   final String text;
 
   final PdfFontMetrics metrics;
+
+  final bool shaped;
 
   @override
   double get left => metrics.left;
@@ -574,6 +590,30 @@ class _Line {
     final spans = parent._spans.sublist(firstSpan, lastSpan);
     final isRTL = textDirection == TextDirection.rtl;
 
+    if (spans.length > 1 && spans.every((s) => s is _Word && s.shaped)) {
+      // Layout stores logical words. Resolve their visual positions after
+      // wrapping, retaining source order for painting and /ActualText.
+      final order = bidi.visualWordOrder(
+        spans.cast<_Word>().map((s) => s.text).toList(),
+        rtl: isRTL,
+      );
+      if (order.indexed.any((entry) => entry.$1 != entry.$2)) {
+        final gaps = [
+          for (var i = 1; i < spans.length; i++)
+            spans[i].offset.x - spans[i - 1].offset.x - spans[i - 1].width,
+        ];
+        var x = spans.first.offset.x;
+        for (var i = 0; i < order.length; i++) {
+          final span = spans[order[i]];
+          span.offset = PdfPoint(x, span.offset.y);
+          x += span.width + (i < gaps.length ? gaps[i] : 0);
+        }
+        // Justification must also distribute its gaps in visual order.
+        final reordered = [for (final i in order) spans[i]];
+        spans.setAll(0, reordered);
+      }
+    }
+
     var delta = 0.0;
     switch (textAlign) {
       case TextAlign.left:
@@ -786,6 +826,84 @@ class RichText extends Widget with SpanningWidget {
 
         final font = style!.font!.getFont(context);
 
+        final candidates = [style.font!, ...style.fontFallback];
+        if (candidates.any((f) {
+          final pdfFont = f.getFont(context);
+          return pdfFont is PdfTtfFont && pdfFont.shaper != null;
+        })) {
+          // Pick a font for the whole grapheme and coalesce adjacent graphemes
+          // into a run. Per-rune fallback loses Indic conjunct/mark context.
+          Font? selected;
+          var pending = StringBuffer();
+          void flush() {
+            if (pending.isEmpty) {
+              return;
+            }
+            spans.add(
+              TextSpan(
+                text: pending.toString(),
+                baseline: span.baseline,
+                style: style.copyWith(
+                  font: selected,
+                  fontNormal: selected,
+                  fontBold: selected,
+                  fontItalic: selected,
+                  fontBoldItalic: selected,
+                ),
+                annotation: annotation,
+              ),
+            );
+            pending = StringBuffer();
+          }
+
+          for (final cluster in span.text!.characters) {
+            Font? match;
+            for (final candidate in candidates) {
+              final pdfFont = candidate.getFont(context);
+              if (cluster.runes.every(
+                (r) => r == 10 || r == 9 || pdfFont.isRuneSupported(r),
+              )) {
+                match = candidate;
+                break;
+              }
+            }
+            if (match == null) {
+              flush();
+              spans.add(
+                _addPlaceholder(
+                  style: style,
+                  baseline: span.baseline,
+                  annotation: annotation,
+                ),
+              );
+              continue;
+            }
+            final matchedFont = match.getFont(context);
+            if (matchedFont is PdfTtfFont && cluster.runes.length == 1) {
+              final bitmap = matchedFont.font.getBitmap(cluster.runes.first);
+              if (bitmap != null) {
+                flush();
+                spans.add(
+                  _addEmoji(
+                    bitmap: bitmap,
+                    style: style,
+                    baseline: span.baseline,
+                    annotation: annotation,
+                  ),
+                );
+                continue;
+              }
+            }
+            if (selected != match) {
+              flush();
+            }
+            selected = match;
+            pending.write(cluster);
+          }
+          flush();
+          return true;
+        }
+
         var text = span.text!.runes.toList();
 
         for (var index = 0; index < text.length; index++) {
@@ -954,7 +1072,9 @@ class RichText extends Widget with SpanningWidget {
               font.stringMetrics(' ') * (style.fontSize! * textScaleFactor);
 
           final spanLines =
-              (useArabic && _textDirection == TextDirection.rtl
+              (font is PdfTtfFont && font.shaper != null
+                      ? span.text
+                      : useArabic && _textDirection == TextDirection.rtl
                       ? arabic.convert(span.text!)
                       : useBidi && _textDirection == TextDirection.rtl
                       ? bidi.logicalToVisual(span.text!)
@@ -1012,7 +1132,12 @@ class RichText extends Widget with SpanningWidget {
                   }
                 }
 
-                if (spanCount > 0 && metrics.width <= constraintWidth) {
+                final indivisible =
+                    font is PdfTtfFont &&
+                    font.shaper != null &&
+                    font.shape(word).breaks.every((end) => end == word.length);
+                if (spanCount > 0 &&
+                    (metrics.width <= constraintWidth || indivisible)) {
                   overflow = true;
                   lines.add(
                     _Line(
@@ -1066,7 +1191,12 @@ class RichText extends Widget with SpanningWidget {
               top = math.min(top, mt + baseline);
               bottom = math.max(bottom, mb + baseline);
 
-              final wd = _Word(word, style, metrics);
+              final wd = _Word(
+                word,
+                style,
+                metrics,
+                shaped: font is PdfTtfFont && font.shaper != null,
+              );
               wd.offset = PdfPoint(offsetX, -offsetY + baseline);
               _spans.add(wd);
               spanCount++;
@@ -1334,6 +1464,29 @@ class RichText extends Widget with SpanningWidget {
   }
 
   int _splitWord(String word, PdfFont font, TextStyle style, double maxWidth) {
+    if (font is PdfTtfFont && font.shaper != null) {
+      final breaks = font.shape(word).breaks;
+      var fits = 0;
+      for (final end in breaks) {
+        final metrics =
+            font.stringMetrics(
+              word.substring(0, end),
+              letterSpacing:
+                  style.letterSpacing! / (style.fontSize! * textScaleFactor),
+            ) *
+            (style.fontSize! * textScaleFactor);
+        if (metrics.maxWidth <= maxWidth) {
+          fits = end;
+        }
+      }
+      // An indivisible cluster may overflow a narrow box, but must not be cut
+      // into isolated marks or retried forever.
+      return fits > 0
+          ? fits
+          : breaks.isEmpty
+          ? word.length
+          : breaks.first;
+    }
     var low = 0;
     var high = word.length;
     var pos = (low + high) ~/ 2;

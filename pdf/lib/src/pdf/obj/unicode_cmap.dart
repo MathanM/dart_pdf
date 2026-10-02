@@ -25,15 +25,15 @@ class PdfUnicodeCmap extends PdfObjectStream {
   /// List of characters
   final cmap = <int>[0];
 
+  /// Unicode sequences for shaped glyph CIDs (ligatures may represent several
+  /// scalars). Empty continuations are omitted; ActualText preserves the run.
+  final unicode = <int, String>{};
+
   /// Protects the text from being "seen" by the PDF reader.
   final bool protect;
 
   @override
   void prepare() {
-    if (protect) {
-      cmap.fillRange(1, cmap.length, 0x20);
-    }
-
     buf.putString(
       '/CIDInit/ProcSet\nfindresource begin\n'
       '12 dict begin\n'
@@ -47,19 +47,33 @@ class PdfUnicodeCmap extends PdfObjectStream {
       '/CMapType 2 def\n'
       '1 begincodespacerange\n'
       '<0000> <FFFF>\n'
-      'endcodespacerange\n'
-      '${cmap.length} beginbfchar\n',
+      'endcodespacerange\n',
     );
 
+    final entries = <String>[];
     for (var key = 0; key < cmap.length; key++) {
-      final value = cmap[key];
-      buf.putString(
-        '<${key.toRadixString(16).toUpperCase().padLeft(4, '0')}> <${value.toRadixString(16).toUpperCase().padLeft(4, '0')}>\n',
+      final value = protect && key > 0
+          ? ' '
+          : unicode[key] ?? String.fromCharCode(cmap[key]);
+      if (value.isEmpty) {
+        continue;
+      }
+      final hex = value.codeUnits
+          .map((unit) => unit.toRadixString(16).toUpperCase().padLeft(4, '0'))
+          .join();
+      entries.add(
+        '<${key.toRadixString(16).toUpperCase().padLeft(4, '0')}> <$hex>\n',
       );
+    }
+    // PDF CMap operators accept at most 100 entries per block.
+    for (var i = 0; i < entries.length; i += 100) {
+      final block = entries.skip(i).take(100).toList();
+      buf.putString('${block.length} beginbfchar\n');
+      block.forEach(buf.putString);
+      buf.putString('endbfchar\n');
     }
 
     buf.putString(
-      'endbfchar\n'
       'endcmap\n'
       'CMapName currentdict /CMap defineresource pop\n'
       'end\n'

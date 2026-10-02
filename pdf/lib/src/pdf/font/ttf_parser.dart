@@ -123,7 +123,9 @@ class TtfParser {
     final numTables = bytes.getUint16(4);
 
     for (var i = 0; i < numTables; i++) {
-      final name = utf8.decode(bytes.buffer.asUint8List(i * 16 + 12, 4));
+      final name = utf8.decode(
+        bytes.buffer.asUint8List(bytes.offsetInBytes + i * 16 + 12, 4),
+      );
       final offset = bytes.getUint32(i * 16 + 20);
       final size = bytes.getUint32(i * 16 + 24);
       tableOffsets[name] = offset;
@@ -243,7 +245,7 @@ class TtfParser {
         try {
           _fontName = utf8.decode(
             bytes.buffer.asUint8List(
-              basePosition + stringOffset + offset,
+              bytes.offsetInBytes + basePosition + stringOffset + offset,
               length,
             ),
           );
@@ -256,7 +258,7 @@ class TtfParser {
         try {
           return _decodeUtf16(
             bytes.buffer.asUint8List(
-              basePosition + stringOffset + offset,
+              bytes.offsetInBytes + basePosition + stringOffset + offset,
               length,
             ),
           );
@@ -460,6 +462,10 @@ class TtfParser {
   TtfGlyphInfo readGlyph(int index) {
     assert(index < glyphOffsets.length);
 
+    if (glyphSizes[index] == 0) {
+      return TtfGlyphInfo(index, Uint8List(0), const <int>[]);
+    }
+
     final start = tableOffsets[glyf_table]! + glyphOffsets[index];
 
     if (start >= tableSize[glyf_table]! + tableOffsets[glyf_table]! ||
@@ -502,7 +508,11 @@ class TtfParser {
     if (numberOfContours == 0) {
       return TtfGlyphInfo(
         glyph,
-        Uint8List.view(bytes.buffer, start, offset - start),
+        Uint8List.view(
+          bytes.buffer,
+          bytes.offsetInBytes + start,
+          offset - start,
+        ),
         const <int>[],
       );
     }
@@ -539,7 +549,7 @@ class TtfParser {
 
     return TtfGlyphInfo(
       glyph,
-      Uint8List.view(bytes.buffer, start, offset - start),
+      Uint8List.view(bytes.buffer, bytes.offsetInBytes + start, offset - start),
       const <int>[],
     );
   }
@@ -581,7 +591,7 @@ class TtfParser {
 
     return TtfGlyphInfo(
       glyph,
-      Uint8List.view(bytes.buffer, start, offset - start),
+      Uint8List.view(bytes.buffer, bytes.offsetInBytes + start, offset - start),
       components,
     );
   }

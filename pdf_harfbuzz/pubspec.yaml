@@ -1,0 +1,16 @@
+name: pdf_harfbuzz
+description: Native OpenType text shaping for the pdf package using HarfBuzz.
+version: 0.1.0
+publish_to: none
+environment:
+  sdk: '>=3.13.0 <4.0.0'
+dependencies:
+  bidi: ^2.0.13
+  characters: ^1.4.0
+  ffi: ^2.2.0
+  harfbuzz_ffi: ^0.5.0
+  pdf:
+    path: ../pdf
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.26.0

@@ -274,3 +274,8 @@ This library also provides SHA1 or SHA-256 Digital Signature using your x509 cer
 It implements a PDF parser to load an existing document and add pages, change pages, and add a signature.
 
 More information here: <https://pub.nfet.net/pdf_crypto/>
+# OpenType / Indic text shaping
+
+For Tamil, Hindi, and Telugu OpenType shaping, see the local
+[pdf_harfbuzz integration and screenshot demo](../pdf_harfbuzz/README.md).
+Pass a `PdfTextShaper` to `Font.ttf` to enable glyph substitution and positioning.

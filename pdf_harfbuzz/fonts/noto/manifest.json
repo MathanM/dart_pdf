@@ -1,0 +1,126 @@
+{
+  "downloadedAt": "2026-09-09T15:07:01.334Z",
+  "repository": "https://github.com/google/fonts",
+  "ranking": "https://censusindia.gov.in/nada/index.php/catalog/42458/download/46089/C-16_25062018.pdf",
+  "rankingBasis": "2011 Census mother-tongue speakers; first ten scheduled languages",
+  "fonts": [
+    {
+      "family": "Noto Sans Devanagari",
+      "folder": "notosansdevanagari",
+      "filename": "NotoSansDevanagari[wdth,wght].ttf",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansdevanagari/NotoSansDevanagari%5Bwdth%2Cwght%5D.ttf",
+      "sha256": "14ec4af41f27482216d1c2229f417ff9b1425e1babb014e57d1d40d03229853e",
+      "bytes": 641944,
+      "license": "SIL Open Font License 1.1",
+      "licenseSha256": "a216f6f8d85c7228093e0ee5e258d9d377e6671f68acb4db1930b29583d0f331",
+      "languages": [
+        "hi",
+        "mr"
+      ]
+    },
+    {
+      "family": "Noto Sans Bengali",
+      "folder": "notosansbengali",
+      "filename": "NotoSansBengali[wdth,wght].ttf",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansbengali/NotoSansBengali%5Bwdth%2Cwght%5D.ttf",
+      "sha256": "dcd42978094e584a849c84a51450eeac40c8826057d566ea6d4b9627a403a05a",
+      "bytes": 463668,
+      "license": "SIL Open Font License 1.1",
+      "licenseSha256": "754f0e221aa7d5a915489f3bf1f20fe53ddc35ab2834a4d91656d78f9622de70",
+      "languages": [
+        "bn"
+      ]
+    },
+    {
+      "family": "Noto Sans Telugu",
+      "folder": "notosanstelugu",
+      "filename": "NotoSansTelugu[wdth,wght].ttf",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanstelugu/NotoSansTelugu%5Bwdth%2Cwght%5D.ttf",
+      "sha256": "e618af7bf999df192ed4f388eba2e563f2b5015034e9cbb317b5bd793bd7334d",
+      "bytes": 888808,
+      "license": "SIL Open Font License 1.1",
+      "licenseSha256": "481c72a8f1b4f645a7e6b10326be41b2da2c15cb470ff48a07fab773eed00102",
+      "languages": [
+        "te"
+      ]
+    },
+    {
+      "family": "Noto Sans Tamil",
+      "folder": "notosanstamil",
+      "filename": "NotoSansTamil[wdth,wght].ttf",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanstamil/NotoSansTamil%5Bwdth%2Cwght%5D.ttf",
+      "sha256": "aa3a9b321f4b0bb2c40203ffbde9af89713227866e0e13f76e5b9eeea727cf88",
+      "bytes": 340668,
+      "license": "SIL Open Font License 1.1",
+      "licenseSha256": "f8ff8ce7d0a81bf8d5e121c635ef027250c531f2fd37d5988b8dd6e45f19d7f1",
+      "languages": [
+        "ta"
+      ]
+    },
+    {
+      "family": "Noto Sans Gujarati",
+      "folder": "notosansgujarati",
+      "filename": "NotoSansGujarati[wdth,wght].ttf",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansgujarati/NotoSansGujarati%5Bwdth%2Cwght%5D.ttf",
+      "sha256": "9901d8552f1dd5d2c50dbd4caa6f6e174e74e8264f06594ab259ae6e7b1ac428",
+      "bytes": 672904,
+      "license": "SIL Open Font License 1.1",
+      "licenseSha256": "c0b88977aa18b5e4fd05d646d560da89fde61b6581fa4507cb00dd90bd1bf7d4",
+      "languages": [
+        "gu"
+      ]
+    },
+    {
+      "family": "Noto Nastaliq Urdu",
+      "folder": "notonastaliqurdu",
+      "filename": "NotoNastaliqUrdu[wght].ttf",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notonastaliqurdu/NotoNastaliqUrdu%5Bwght%5D.ttf",
+      "sha256": "98a4787f34eb6fde57fb9a1121a8f216301196ab0da98ea110cad581be8abbcd",
+      "bytes": 690304,
+      "license": "SIL Open Font License 1.1",
+      "licenseSha256": "e90279e3fb2003c4d54f8685e25274bd7838b1b21c891520d71dbdb1d4a98907",
+      "languages": [
+        "ur"
+      ]
+    },
+    {
+      "family": "Noto Sans Kannada",
+      "folder": "notosanskannada",
+      "filename": "NotoSansKannada[wdth,wght].ttf",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanskannada/NotoSansKannada%5Bwdth%2Cwght%5D.ttf",
+      "sha256": "cca4f3b3a8cb12fb261f1b43baf5d2f7f59d90fe123d41f0065ed3a183997ec9",
+      "bytes": 641372,
+      "license": "SIL Open Font License 1.1",
+      "licenseSha256": "9d49a4e56df9b36403b139f48bf07fd87cc5e716cb3203c54b04b674adb16238",
+      "languages": [
+        "kn"
+      ]
+    },
+    {
+      "family": "Noto Sans Oriya",
+      "folder": "notosansoriya",
+      "filename": "NotoSansOriya[wdth,wght].ttf",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansoriya/NotoSansOriya%5Bwdth%2Cwght%5D.ttf",
+      "sha256": "910342275d619081b896b4ed25fd9ad6ff320c25591b810de1fcc4beb153ba82",
+      "bytes": 613116,
+      "license": "SIL Open Font License 1.1",
+      "licenseSha256": "c90ff15ade263a49148e35af34e9c177c6d56881e81260b29f10123e9e227eca",
+      "languages": [
+        "or"
+      ]
+    },
+    {
+      "family": "Noto Sans Malayalam",
+      "folder": "notosansmalayalam",
+      "filename": "NotoSansMalayalam[wdth,wght].ttf",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansmalayalam/NotoSansMalayalam%5Bwdth%2Cwght%5D.ttf",
+      "sha256": "312e0e7c3cc15fa09eb42a8f749eeb246b593ed420e3c81aafe8d910c3a6fb56",
+      "bytes": 504204,
+      "license": "SIL Open Font License 1.1",
+      "licenseSha256": "1df18163a0bf60f02131401ba1609df90051f40c4047684dda1c8a2e9586f7f2",
+      "languages": [
+        "ml"
+      ]
+    }
+  ]
+}

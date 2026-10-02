@@ -34,6 +34,7 @@ import 'obj/image.dart';
 import 'obj/page.dart';
 import 'obj/pattern.dart';
 import 'obj/shading.dart';
+import 'obj/ttffont.dart';
 import 'rect.dart';
 
 /// Shape to be used at the corners of paths that are stroked
@@ -613,9 +614,62 @@ class PdfGraphics {
       return true;
     }());
 
-    _buf.putString('[');
-    font.putText(_buf, s);
-    _buf.putString(']TJ ');
+    if (font is PdfTtfFont && font.shaper != null) {
+      final run = font.shape(s);
+      final clusters = {...run.glyphs.map((g) => g.cluster), s.length}.toList()
+        ..sort();
+      final ends = <int, int>{
+        for (var i = 0; i + 1 < clusters.length; i++)
+          clusters[i]: clusters[i + 1],
+      };
+      final emitted = <int>{};
+      // ActualText retains logical Unicode order after Indic reordering and
+      // many-to-many substitution. The visible content is embedded PDF text.
+      if (!font.unicodeCMap.protect) {
+        final hex = s.codeUnits
+            .map((u) => u.toRadixString(16).padLeft(4, '0'))
+            .join();
+        _buf.putString('/Span << /ActualText <feff$hex> >> BDC ');
+      }
+      var dx = 0.0;
+      var dy = 0.0;
+      for (var i = 0; i < run.glyphs.length; i++) {
+        final glyph = run.glyphs[i];
+        final source = emitted.add(glyph.cluster)
+            ? s.substring(glyph.cluster, ends[glyph.cluster]!)
+            : '';
+        final cid = font.registerGlyph(glyph.glyphId, source);
+        // Absolute text matrices preserve both GPOS offsets and advances;
+        // font widths and PDF Tc/Tw must not reposition combining marks.
+        PdfNumList([
+          1,
+          0,
+          0,
+          1,
+          x + (dx + glyph.xOffset * size) * (scale ?? 1),
+          y + dy + glyph.yOffset * size,
+        ]).output(_page, _buf);
+        _buf.putString(' Tm <${cid.toRadixString(16).padLeft(4, '0')}> Tj ');
+        dx += glyph.xAdvance * size;
+        dy += glyph.yAdvance * size;
+        if (i + 1 < run.glyphs.length &&
+            glyph.cluster != run.glyphs[i + 1].cluster) {
+          dx += charSpace ?? 0;
+        }
+        if (s.substring(glyph.cluster, ends[glyph.cluster]!) == ' ' &&
+            (i + 1 == run.glyphs.length ||
+                glyph.cluster != run.glyphs[i + 1].cluster)) {
+          dx += wordSpace ?? 0;
+        }
+      }
+      if (!font.unicodeCMap.protect) {
+        _buf.putString('EMC ');
+      }
+    } else {
+      _buf.putString('[');
+      font.putText(_buf, s);
+      _buf.putString(']TJ ');
+    }
 
     assert(() {
       if (_page.settings.verbose) {
