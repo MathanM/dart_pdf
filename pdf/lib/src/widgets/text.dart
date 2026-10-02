@@ -1104,6 +1104,7 @@ class RichText extends Widget with SpanningWidget {
 
     var top = 0.0;
     var bottom = 0.0;
+    var minWidth = 0.0;
 
     final lines = <_Line>[];
     var spanCount = 0;
@@ -1127,14 +1128,13 @@ class RichText extends Widget with SpanningWidget {
           final space =
               font.stringMetrics(' ') * (style.fontSize! * textScaleFactor);
 
-          final spanText =
-              (font is PdfTtfFont && font.shaper != null
-                  ? span.text
-                  : useArabic && _textDirection == TextDirection.rtl
-                  ? arabic.convert(span.text!)
-                  : useBidi && _textDirection == TextDirection.rtl
-                  ? bidi.logicalToVisual(span.text!)
-                  : span.text)!;
+          final spanText = (font is PdfTtfFont && font.shaper != null
+              ? span.text
+              : useArabic && _textDirection == TextDirection.rtl
+              ? arabic.convert(span.text!)
+              : useBidi && _textDirection == TextDirection.rtl
+              ? bidi.logicalToVisual(span.text!)
+              : span.text)!;
           // Fast path: a run of printable ASCII with no space is one word on
           // one line, so both splits — and the regex engine behind the word
           // split — can be skipped. Serial numbers and ticket numbers, the
@@ -1176,6 +1176,8 @@ class RichText extends Widget with SpanningWidget {
                         (style.fontSize! * textScaleFactor),
                   ) *
                   (style.fontSize! * textScaleFactor);
+
+              minWidth = math.max(minWidth, metrics.width);
 
               if (_softWrap &&
                   offsetX + metrics.width > constraintWidth + 0.00001) {
@@ -1439,6 +1441,7 @@ class RichText extends Widget with SpanningWidget {
       0,
       constraints.constrainWidth(width),
       constraints.constrainHeight(offsetY),
+      minWidth,
     );
 
     _context

@@ -96,6 +96,9 @@ class Padding extends SingleChildWidget {
       box = constraints.constrainRect(
         width: child!.box!.width + resolvedPadding.horizontal,
         height: child!.box!.height + resolvedPadding.vertical,
+        minWidth: child!.box!.minWidth != null
+            ? child!.box!.minWidth! + resolvedPadding.horizontal
+            : null,
       );
     } else {
       box = constraints.constrainRect(
@@ -363,6 +366,9 @@ class Align extends SingleChildWidget {
         height: shrinkWrapHeight
             ? child!.box!.height * (heightFactor ?? 1.0)
             : double.infinity,
+        minWidth: child!.box!.minWidth != null && shrinkWrapWidth
+            ? child!.box!.minWidth! * (widthFactor ?? 1.0)
+            : null,
       );
       final resolvedAlignment = alignment.resolve(Directionality.of(context));
       child!.box = resolvedAlignment.inscribe(child!.box!.size, box!);
